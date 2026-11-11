@@ -1,0 +1,44 @@
+name: Scanner PDF - APK Android de prueba
+on:
+  push:
+    branches:
+      - scanner-pdf-piloto
+    paths:
+      - 'scanner-pdf/**'
+      - '.github/workflows/scanner-pdf-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+      - name: Preparar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Instalar SDK 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compilar APK de prueba
+        run: gradle -p scanner-pdf :app:assembleDebug --no-daemon --stacktrace
+      - name: Verificar estructura APK
+        run: |
+          test -s scanner-pdf/app/build/outputs/apk/debug/app-debug.apk
+          unzip -t scanner-pdf/app/build/outputs/apk/debug/app-debug.apk | tail -1
+      - name: Guardar APK descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScannerPDF-APK-Debug
+          path: scanner-pdf/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
